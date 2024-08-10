@@ -18,6 +18,7 @@ String hubState = "PC";
 
 // Assign output variable to GPIO pin
 const int switchPin = 5;  // D1 on Wemos D1 mini
+const int monitorPin = 4; // D2 on Wemos D1 mini for monitoring channel state
 
 // Current time
 unsigned long currentTime = millis();
@@ -26,12 +27,24 @@ unsigned long previousTime = 0;
 // Define timeout time in milliseconds (example: 2000ms = 2s)
 const long timeoutTime = 2000;
 
+void updateHubState() {
+  String newState = digitalRead(monitorPin) == HIGH ? "PC" : "Mac";
+  if (newState != hubState) {
+    hubState = newState;
+    Serial.println("Hub state changed to: " + hubState);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   // Initialize the output variable as output
   pinMode(switchPin, OUTPUT);
+  pinMode(monitorPin, INPUT);
   // Set output to HIGH (button "released")
   digitalWrite(switchPin, HIGH);
+
+  // Initialize hubState based on current channel
+  hubState = digitalRead(monitorPin) == HIGH ? "PC" : "Mac";
 
   // Connect to Wi-Fi network with SSID and password
   Serial.print("Connecting to ");
@@ -53,10 +66,12 @@ void switchHub() {
   digitalWrite(switchPin, LOW);  // "Press" the button
   delay(100);  // Hold for 100ms
   digitalWrite(switchPin, HIGH);  // "Release" the button
-  hubState = (hubState == "PC") ? "Mac" : "PC";  // Toggle the state
+  updateHubState();  // Update the state after switching
 }
 
 void loop(){
+  updateHubState();  // Check for manual changes
+  
   WiFiClient client = server.accept();   // Listen for incoming clients
 
   if (client) {                             // If a new client connects,
@@ -97,9 +112,8 @@ void loop(){
             client.println("<body><h1>USB Hub Switch</h1>");
             
             client.println("<p>Current State: " + hubState + "</p>");
-            
-            // Fixed line
-            String buttonText = String("<p><a href=\"/switch\"><button class=\"button\">Switch to ") + (hubState == "PC" ? "Mac" : "PC") + "</button></a></p>";
+            String buttonText = String("<p><a href=\"/switch\"><button class=\"button\">Switch to ") + 
+                                (hubState == "PC" ? "Mac" : "PC") + "</button></a></p>";
             client.println(buttonText);
             
             client.println("</body></html>");
