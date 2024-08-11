@@ -4,16 +4,17 @@
 
 
 // Replace with your network credentials
-const char* ssid     = "BeetsDeBeer";
-const char* password = "831126jac";
+const char* ssid     = "";
+const char* password = "";
 
 
 ESP8266WebServer server(80);
 
+IPAddress ip;
 String hubState = "PC";
-const int switchPin = 5;  // D1 on Wemos D1 mini
-const int monitorPin = 4; // D2 on Wemos D1 mini for monitoring channel state
-
+const int switchPin = 5;  // D1 on Wemos D1 mini || PCB === L6 || 1K Ohm Resistor
+const int monitorPin = 4; // D2 on Wemos D1 mini for monitoring channel state || PCB === L5 || 20K Ohm Resistor
+// GROUND || PCB === L2 || 1K Ohm Resistor
 
 void updateHubState() {
   String newState = digitalRead(monitorPin) == HIGH ? "PC" : "Mac";
@@ -38,6 +39,7 @@ void handleRoot() {
   html += "<script>function updateState() {fetch('/state').then(response => response.text()).then(state => {document.getElementById('state').innerText = state;document.getElementById('switchButton').innerText = 'Switch to ' + (state === 'PC' ? 'Mac' : 'PC');});} setInterval(updateState, 5000);</script>";
   html += "</head><body>";
   html += "<h1>USB Hub Switch</h1>";
+  html += "<h2>Current State: <span id='state'>" + ip.toString() + "</span></h2>";
   html += "<p>Current State: <span id='state'>" + hubState + "</span></p>";
   html += String("<a href='/switch' id='switchButton'>Switch to ") + (hubState == "PC" ? "Mac" : "PC") + "</a>";
   html += "</body></html>";
@@ -70,7 +72,8 @@ void setup() {
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  ip = WiFi.localIP();
+  Serial.println(ip.toString());
 
   // Initialize hubState based on current channel
   updateHubState();
